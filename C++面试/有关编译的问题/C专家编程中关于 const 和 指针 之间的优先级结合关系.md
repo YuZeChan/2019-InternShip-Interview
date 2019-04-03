@@ -1,0 +1,1 @@
+![img](../resources/const_pointer.png)
