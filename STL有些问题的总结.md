@@ -30,6 +30,12 @@ clear（）方法不释放空间，析构时才释放。swap（）强制交换�
 **insert和emplace区别：**
 	emplace支持用插入对象的构造函数就地构造，比先用构造函数构造出对象，传入insert再一次拷贝构造的两次过程节省一次。
 
+
+
+**vector的实现：**
+
+![vector实现](/resources/vector实现.jpg)
+
 ***
 
 补充实际使用时的问题：
