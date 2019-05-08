@@ -356,3 +356,92 @@ bin/hadoop namenode -importCheckpoint		//从Checkpoint恢复
 
 ***
 
+#### HDFS的使用：
+
+##### C接口libhdfs：
+
+###### libhdfs介绍：
+
+​	libhdfs是HDFS的一个基于JNI的C语言API接口，通过libhdfs可以使用c/c++语言来操作HDFS。
+
+​	JNI（Java Native Interface）提供API实现Java和其他语言的通信。
+
+**原理：**libhdfs中的函数通过JNI调用Java虚拟机，在JVM中构造对应的HDFS的Java类，然后**反射**调用该类的功能函数。（这块的解释我觉得不太对，反射应该是作用于对象的，所以构造的不应该是类应该是对象，或者说这个反射是错的。）
+
+因为简介调用总会发生**JVM和程序之间的内存复制**，大规模下效率堪忧。
+
+
+
+###### 编译与部署：
+
+虽然Hadoop发行版包含已编译好的libhdfs库，但由于编译平台的兼容性问题，最好在使用前重新编译。
+
+编译的版本和当前JVM版本（32位或64位）匹配。
+
+```shell
+ant -Dcompile.c++=true -Dlibhdfs=true compile-c++-libhdfs
+```
+
+另外要手动添加环境变量，这就不用多说了。
+
+
+
+###### libhdfs接口介绍：
+
+一、（首先要建立与HDFS的通信）建立与关闭HDFS连接：
+
+```C++
+//返回的是一个filesystem句柄，失败返回NULL
+hdfsFS hdfsConnectAsUser(const char* host, 		//NameNode节点的IP地址或主机名，“default”表示本机系统
+                        tPort port,				//HDFS对外服务的监听端口号
+                        const char* user)		//要指定的Hadoop用户名
+
+int hdfsDisconnect(hdfsFS fs)					//传入的就是被打开的句柄
+```
+
+
+
+二、建立连接之后，打开与关闭HDFS文件进行读写访问：
+
+```C++
+//返回的是打开文件的句柄，失败返回NULL
+hdfsFile hdfsOpenFile(hdfsFS fs, 				//建立连接后的文件句柄
+                     const char* path, 			//要打开文件的HDFS完全路径
+                     int flags, 				//文件标志位，O_RDONLY、O_WRONLY、O_APPEND
+                     int bufferSize, 			//读写缓冲区大小，0表示HDFS默认配置
+                     short replication, 		//文件块复制因数~
+                     tSize blocksize)			//文件块大小~
+    
+int hdfsCloseFile(hdfsFS fs, hdfsFile file);
+```
+
+
+
+三、之后可以进行读写操作，刷新Flush保存，查询操作，复制和删除操作，这里就不记了。
+
+四、完整示例：
+
+```C++
+#include "hdfs.h"
+int main(int argc, char** argv){
+    //建立连接，本机系统
+    hdfsFS fs = hdfsConnect("default", 0);
+    const char* writePath = "test_write_file.txt";
+    //打开文件
+    hdfsFile writeFile = hdfsOpenFile(fs, writePath, O_WRONLY|O_CREAT, 0, 0, 0);
+    if(!writeFile){
+        fprintf(stderr, "Failed to open %s for writing!\n", writePath);
+        exit(-1);
+    }
+    char* buffer = "Hello, libhdfs api!";
+    tSize num_written_bytes = hdfsWrite(fs, writeFile, (void*)buffer, strlen(buffer)+1);
+    //调用flush，并判断是否成功
+    if(hdfsFlush(fs, writeFile)){
+        fprintf(stderr, "Failed to 'Flush' %s !\n", writePath);
+        exit(-1);
+    }
+    //关闭文件
+    hdfsCloseFile(fs, writeFile);
+}
+```
+
