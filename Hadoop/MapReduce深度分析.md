@@ -50,7 +50,7 @@
 
 ### MapTask实现分析：
 
-MapTask总逻辑流程：
+##### MapTask总逻辑流程：
 
 ![MapTask流程图](/resources/MapTask流程图.png)
 
@@ -59,4 +59,104 @@ MapTask总逻辑流程：
 3. Collector和Partitioner阶段，Collector对象**收集Mapper输出**，并在OutputCollector函数内部对键值对进行**Partitioner分区**，以便确定相应的Reducer处理。最终输出到内存缓冲区。
 4. Spill阶段，包括Sort和Combiner，缓冲区到达阈值**溢写，同时进行排序**。（设置了Combiner则调用Conbiner()函数）
 5. Merge阶段，对Spill生成的本地磁盘中的**小文件进行多次合并**。
+
+
+
+**各个阶段分别创建了什么对象，调用什么方法处理，在这就不记录了，太细节的东西，记也记不住，反而抓住脉络，观其大略就好。**
+
+***
+
+##### ReduceTask总逻辑流程：
+
+![ReduceTask流程图](/resources/ReduceTask流程图.png)
+
+这本书的内容有点老，好像之后发现都是不太一样的。
+
+1. Shuffle阶段（也称Copy阶段），运行Reducer的TaskTracker需要从**各个Mapper节点远程复制属于自己处理**的一段数据。
+2. Merge阶段，复制时从**很多Mapper节点**复制同一partition段的数据，需要多次合并，**以防ReduceTask节点内存中使用太多或小文件过多**。
+3. Sort阶段，经过Shuffle和Merge后**不一定有序**<k,v>，在Reduce端进行**多轮归并排序**。
+4. Reduce阶段，**Reduce任务的输入须<k,v>是排序的**，因此只能在Sort阶段**完成后才可调用**。
+
+
+
+
+
+##### Shuffle阶段：
+
+![Shuffle阶段](/resources/Shuffle阶段.png)
+
+- 1）maptask 收集我们的 map()方法输出的 kv 对，放到内存缓冲区中
+- 2）从内存缓冲区不断溢出本地磁盘文件，可能会溢出多个文件
+- 3）多个溢出文件会被合并成大的溢出文件
+- 4）在溢出过程中，及合并的过程中，都要**调用 partitioner 进行分区和针对 key 进行排序**
+- 5）reducetask 根据自己的分区号，去各个 maptask 机器上取相应的结果分区数据
+- 6）reducetask 会取到同一个分区的来自不同 maptask 的结果文件，reducetask 会将这些
+- 文件再进行合并（归并排序）
+- 7）**合并成大文件后，shuffle 的过程也就结束了**，后面进入 reducetask 的逻辑运算过程
+- （从文件中取出一个一个的键值对 group，调用用户自定义的 reduce()方法）
+
+
+
+补充：只要一个Map任务完成，就开始复制，多线程并行复制，默认开5个线程。
+
+copy和merge包括Sort在执行时基本是同时进行的，但在逻辑上分成三个阶段。
+
+
+
+***
+
+##### JobTracker分析：
+
+​	JobTracker是MapReduce的Master，是Hadoop中最重要的后台守护进程之一。**JobTracker只有一个。**所有用户作业都由他调度并分配给TaskTracker执行。
+
+主要功能（启动多个服务和多个线程来维护）：
+
+- 管理任务调度
+- 管理TaskTracker
+- 监控作业执行
+- 运行作业容错机制
+
+
+
+##### TaskTracker分析：
+
+​	是slave节点，运行在DataNode上，主要功能是执行JobTracker分发的任务。启动在JobTracker之后。
+
+
+
+***
+
+##### 心跳机制（用于通信）：
+
+HDFS的NameNode和DataNode之间
+
+MapReduce的JobTracker和TaskTracker之间
+
+1. Master/Slave之间用过一个周期性信号进行通信。
+2. 在Hadoop的Master启动的时候回开启一个**IPC（进程间通信）Server**以**等待**Slave的心跳数据包。
+3. Slave启动时会主动连接Master，并周期性（3s）向Master发送一个心跳数据包，将自己的状态告诉Master，然后通过从Master传回的返回的值来执行命令。
+4. JobTracker通过记录responseID并发送给TaskTracker，对比收到的包+1，来确定收到的心跳包是否丢失。类似建立连接。。。
+
+
+
+***
+
+##### 作业创建分析：
+
+作业的创建主要由JobClient类负责完成。同时负责提交作业、跟踪作业状态、访问子任务报告、日志等、获取MapReduce集群状态信息等任务。
+
+
+
+JobClient创建作业时：
+
+1. 检查输入/输出的有效性，
+2. 计算作业的Splits，
+3. 复制作业的jar包和配置文件到HDFS的Mapred系统目录，
+4. 提交作业给JobTracker并跟踪作业状态。
+
+
+
+
+
+##### 
 
