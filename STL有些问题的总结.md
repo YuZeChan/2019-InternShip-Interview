@@ -41,9 +41,8 @@ clear（）方法不释放空间，析构时才释放。swap（）强制交换�
 补充实际使用时的问题：
 
 ```C++
-vector<vector<int>> v(5);
-//这样初始化是预分配五个长度为零的vector<int>，不能直接访问如v[0][3]，但可以v[0].push_back(1);
-vector<vector<int> > v1(n);
+//vector<vector<int>> v(5);这样初始化是预分配五个长度为零的vector<int>，不能直接访问如v[0][3]，但可以v[0].push_back(1);
+vector<vector<int> > v1(5);
 v1[0].push_back(1);
 //无初始化，v2.size() == 0;
 vector<vector<int> > v2;
@@ -89,6 +88,8 @@ hashmap：底层是散列表，拉链法（这里没用线性探查法），O(1+
 
 #include<queue>中，构造函数priority_queue<int ,vector<int> , less/greater<int>>;
 
+less是最大堆，greater是最小堆。
+
 底层是**堆**；
 
 ***
@@ -107,7 +108,7 @@ queue先入先出：广度优先遍历
 
 使用allocate向内存池请求大小为size的内存空间。
 
-- SGI STL的内存池
+- SGI STL的内存池（STL是一个标准，各商家根据这个标准开发了各自的STL版本。SGI为一个STL版本）
 - 超过128bytes 第一级配置器 直接malloc
 - 小于128bytes 第二级配置器
 - 16个链表管理，从8bytes到128bytes，每次申请内存从对应链表中拔出内存块，如果链表为空，向内存池取20个区块，或取剩下个数的区块（不足20），仍然不行就分配内存池零头，内存池重新分配请求堆上内存，为两倍的请求内存加上一个随请求次数增加的值。如果不够则找大的区块挖一块使用，如果还不行就调用一级配置器的out of memory处理机制

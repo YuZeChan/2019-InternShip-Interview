@@ -102,7 +102,7 @@ HTTP响应：
 
 ​	Connection：通常为两个值keep-alive和close
 
-​	Accept：浏览器端空压机接收的MIME类型（*MIME* (Multipurpose Internet Mail Extensions) 是**描述消息内容类型的因特网标准**）
+​	Accept：浏览器端可以接收的MIME类型（*MIME* (Multipurpose Internet Mail Extensions) 是**描述消息内容类型的因特网标准**）
 
 ​	Cache-Control：指定请求和响应遵循的缓存机制
 
@@ -116,7 +116,7 @@ HTTP响应：
 
 ​	If-Modified-Since ：把浏览器端缓存页面的最后修改时间发送到服务器去，服务器会把这个时间与服务器上实际文件的最后修改时间进行对比 。 如果时间一致，那么返回 304 状态，客户端就直接使用本地缓存文件；如果时间不一致，就会返回 200 状态和新的文件内容 。 客户端接到之后，会丢弃旧文件，把新文件缓存起来，井显示在浏览器中 。 	
 
-​	If-None-Match: If-Non-Match 和 ETag 一起工作，工作原理是在 HTTP Response 中添加ETag 信息 。当用户再次请求该资源时，将在 HTTP Request 中加入 If-None-Match信息（Etag的值）。如果服务器验证资源的 ETag 没有改变（该资源没有更新），将返回一个 304 状态告诉客户端使用本地缓存文件 。 否则将返回 200 状态和新的资源和 Etag。 使用这样的机制可以提高网站的性能 。 
+​	If-None-Match: If-None-Match 和 **ETag** 一起工作，工作原理是在 HTTP Response 中添加ETag 信息 。当用户再次请求该资源时，将在 HTTP Request 中加入 If-None-Match信息（Etag的值）。如果服务器验证资源的 ETag 没有改变（该资源没有更新），将返回一个 304 状态告诉客户端使用本地缓存文件 。 否则将返回 200 状态和新的资源和 Etag。 使用这样的机制可以提高网站的性能 。 
 
 ​	Content-Type  
 
@@ -166,7 +166,7 @@ HTTP响应：
 
 ​	HTTPS = HTTP + TLS（SSL的升级版）
 
-​	TLS（Transport Layer Security）传输层安全协议。TLS协议可用于保护正常运行于TCP上的任何应用协议通信。如HTTP，FTP，SMTP等。
+​	TLS（Transport Layer Security）传输层安全协议。TLS协议可用于保护正常运行于TCP上的任何应用协议通信。如HTTP，FTP，SMTP等。(**这里比较重要的是，TSL/SSL应该属于会话层~~我理解其实再见连接（交换公私钥）的过程实际上是建立会话的过程)**
 
 其优点是：它是与应用层协议无关的，高层应用协议透明的建立在TLS协议之上。
 
